@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🔧 에코 주파수 조정기 전용 계산기</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #1a1a1d; color: #e0e0e0; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; overflow-x: hidden; }
+        h1 { text-align: center; color: #ff9800; font-size: 26px; }
+        .container { background: #252529; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%; }
+        .step-box { background: #2a2a2e; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #ff9800; }
+        .step-title { font-size: 18px; font-weight: bold; color: #fff; margin-bottom: 15px; border-bottom: 1px dashed #555; padding-bottom: 10px; }
+        
+        label { font-weight: bold; color: #aaa; font-size: 14px; }
+        select, input[type="number"], button { padding: 10px; border-radius: 6px; border: 1px solid #444; background-color: #333; color: #fff; font-size: 14px; box-sizing: border-box; }
+        select:focus, input:focus { border-color: #ff9800; outline: none; }
+        button { width: 100%; background: linear-gradient(45deg, #ff9800, #ff5722); border: none; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; color: white; font-size: 18px; padding: 15px; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,87,34,0.4); }
+
+        /* 1단계: 현재 에코 슬롯 UI */
+        .echo-slot { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; background: #333; padding: 10px; border-radius: 8px; border: 1px solid #444; flex-wrap: wrap; }
+        .slot-num { font-weight: bold; color: #ff9800; width: 30px; text-align: center; }
+        .stat-select { flex: 2; min-width: 150px; }
+        .val-select { flex: 1; min-width: 80px; }
+        .lock-checkbox { display: flex; align-items: center; background: #222; padding: 8px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; transition: 0.2s; border: 1px solid #555; flex: 1; justify-content: center; }
+        .lock-checkbox input { margin-right: 8px; accent-color: #f44336; transform: scale(1.3); }
+        .lock-checkbox:hover { background: #444; }
+        .locked-slot { border-color: #f44336; background: rgba(244, 67, 54, 0.1); }
+
+        /* 2단계: 목표 옵션 UI */
+        .target-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; margin-top: 10px; }
+        .target-row { display: flex; align-items: center; gap: 10px; background: #333; padding: 10px 15px; border-radius: 8px; border: 1px solid #444; transition: 0.2s; flex-wrap: wrap; }
+        .target-row:hover { border-color: #ff9800; }
+        .target-cb-label { display: flex; align-items: center; flex: 1; min-width: 150px; cursor: pointer; font-weight: bold; }
+        .target-cb-label input { margin-right: 10px; accent-color: #ff9800; transform: scale(1.2); }
+        .target-val-select { flex: 1; display: none; min-width: 100px; }
+        
+        .result-box { display: none; margin-top: 20px; padding: 25px; background: #2a2a2e; border-radius: 12px; border: 2px solid #ff9800; text-align: center; box-shadow: 0 0 20px rgba(255,152,0,0.2); }
+        .res-title { font-size: 20px; font-weight: bold; color: #ff9800; margin-bottom: 15px; }
+        .res-prob { font-size: 34px; font-weight: bold; color: #fff; margin-bottom: 10px; }
+        .res-expected { font-size: 16px; color: #aaa; }
+        .help-text { font-size: 13px; color: #888; margin-top: 5px; margin-bottom: 10px; }
+
+        /* 모바일 대응 미디어 쿼리 */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            .step-box { padding: 15px; }
+            .target-grid { grid-template-columns: 1fr; }
+            .echo-slot { justify-content: space-between; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔧 에코 주파수 조정기 계산기</h1>
+
+    <div class="step-box">
+        <div class="step-title">1단계: 현재 에코 상태 입력 및 잠금</div>
+        <p class="help-text">인게임 에코와 똑같이 5개의 옵션과 수치를 맞추고, 유지할 옵션에 <b>[🔒 잠금]</b>을 체크하세요.</p>
+        <div id="current_echo_slots"></div>
+    </div>
+
+    <div class="step-box">
+        <div class="step-title">2단계: 재구성 목표 설정</div>
+        <p class="help-text">잠그지 않고 돌릴 빈칸들에 <b>어떤 옵션이 무슨 수치로</b> 뜨길 원하시나요?</p>
+        <div class="target-grid" id="target_grid"></div>
+        
+        <div style="margin-top: 20px; background: #333; padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50;">
+            <label style="color:#fff;">▶ 위에서 체크한 목표 중 <span style="color:#4caf50; font-size:18px;">최소 몇 개</span>가 동시에 떠야 성공인가요?</label>
+            <input type="number" id="target_r" value="2" min="1" max="5" style="width: 100px; margin-top: 8px;">
+            <p class="help-text" style="margin:0; margin-top:5px;">예: 공효, 공퍼 2개를 체크하고 둘 다 뜨길 원하면 '2' 입력</p>
+        </div>
+    </div>
+
+    <button onclick="calculateFinalProb()">조정기 성공 확률 계산하기 🚀</button>
+
+    <div id="resultArea" class="result-box">
+        <div class="res-title">📊 [계산 결과]</div>
+        <div id="res_details" style="color:#ccc; font-size:15px; margin-bottom:15px; line-height:1.5;"></div>
+        <div class="res-prob" id="final_prob">0.0000%</div>
+        <div class="res-expected" id="expected_tries"></div>
+    </div>
+</div>
+
+<script>
+    const STAT_DATA = {
+        "크리티컬": [6.3, 6.9, 7.5, 8.1, 8.7, 9.3, 9.9, 10.5],
+        "크리티컬 피해": [12.6, 13.8, 15.0, 16.2, 17.4, 18.6, 19.8, 21.0],
+        "공격력 보너스(%)": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "공명 효율": [6.8, 7.6, 8.4, 9.2, 10.0, 10.8, 11.6, 12.4],
+        "공명 스킬 피해": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "일반 공격 피해": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "강공격 피해": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "공명 해방 피해": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "HP 보너스(%)": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "방어력 보너스(%)": [8.1, 9.0, 10.0, 10.9, 11.8, 12.8, 13.8, 14.7],
+        "고정 공격력": [30, 40, 50, 60],
+        "고정 방어력": [40, 50, 60, 70],
+        "고정 HP": [320, 360, 390, 430, 470, 510, 540, 580]
+    };
+    
+    const PROB_DATA = {
+        "8": [6.7961, 7.7670, 20.3883, 24.2718, 17.4757, 14.5631, 5.8252, 2.9126], 
+        "8_crit": [23.3333, 23.3333, 23.3333, 8.0000, 8.0000, 8.0000, 3.0000, 3.0000],
+        "4_atk": [6.7961, 52.4272, 37.8641, 2.9126],
+        "4_def": [14.5631, 44.6602, 32.0388, 8.7379]
+    };
+    const STATS = Object.keys(STAT_DATA);
+
+    window.onload = () => {
+        renderCurrentEchoSlots();
+        updateTargetGrid();
+    };
+
+    function renderCurrentEchoSlots() {
+        let html = "";
+        for (let i = 0; i < 5; i++) {
+            html += `
+                <div class="echo-slot" id="slot_row_${i}">
+                    <div class="slot-num">${i+1}</div>
+                    <select id="stat_${i}" class="stat-select" onchange="updateValDropdown(${i}); updateTargetGrid();">
+                        <option value="">-- 옵션 종류 --</option>
+                        ${STATS.map(s => `<option value="${s}">${s}</option>`).join('')}
+                    </select>
+                    <select id="val_${i}" class="val-select">
+                        <option value="">수치</option>
+                    </select>
+                    <label class="lock-checkbox">
+                        <input type="checkbox" id="lock_${i}" onchange="toggleLockUI(${i}); updateTargetGrid();"> 🔒 잠금
+                    </label>
+                </div>
+            `;
+        }
+        document.getElementById('current_echo_slots').innerHTML = html;
+    }
+
+    function updateValDropdown(idx) {
+        const stat = document.getElementById(`stat_${idx}`).value;
+        const valSelect = document.getElementById(`val_${idx}`);
+        if (!stat) {
+            valSelect.innerHTML = `<option value="">수치</option>`;
+            return;
+        }
+        valSelect.innerHTML = STAT_DATA[stat].map(v => `<option value="${v}">${v}</option>`).join('');
+    }
+
+    function toggleLockUI(idx) {
+        const row = document.getElementById(`slot_row_${idx}`);
+        if (document.getElementById(`lock_${idx}`).checked) row.classList.add('locked-slot');
+        else row.classList.remove('locked-slot');
+    }
+
+    function getLockedStats() {
+        let locked = [];
+        for (let i = 0; i < 5; i++) {
+            if (document.getElementById(`lock_${i}`).checked) {
+                let s = document.getElementById(`stat_${i}`).value;
+                if (s) locked.push(s);
+            }
+        }
+        return locked;
+    }
+
+    function updateTargetGrid() {
+        const lockedStats = getLockedStats();
+        const grid = document.getElementById('target_grid');
+        grid.innerHTML = "";
+
+        STATS.forEach(stat => {
+            if (lockedStats.includes(stat)) return; 
+            
+            let valOptions = STAT_DATA[stat].map((v, i) => `<option value="${v}">${v} ${i===0?'(최하)':''}</option>`).join('');
+            
+            grid.innerHTML += `
+                <div class="target-row" id="t_row_${stat}">
+                    <label class="target-cb-label">
+                        <input type="checkbox" id="t_cb_${stat}" value="${stat}" onchange="toggleTargetVal('${stat}')">
+                        ${stat}
+                    </label>
+                    <select id="t_val_${stat}" class="target-val-select">
+                        ${valOptions}
+                    </select>
+                </div>
+            `;
+        });
+    }
+
+    function toggleTargetVal(stat) {
+        const sel = document.getElementById(`t_val_${stat}`);
+        const row = document.getElementById(`t_row_${stat}`);
+        if (document.getElementById(`t_cb_${stat}`).checked) {
+            sel.style.display = "block";
+            row.style.borderColor = "#ff9800";
+        } else {
+            sel.style.display = "none";
+            row.style.borderColor = "#444";
+        }
+    }
+
+    function nCr(n, r) {
+        if (r < 0 || r > n) return 0;
+        if (r === 0 || r === n) return 1;
+        let res = 1;
+        for (let i = 1; i <= r; i++) res = res * (n - i + 1) / i;
+        return Math.round(res);
+    }
+
+    function getCombinations(array, size) {
+        let result = [];
+        function p(t, i) {
+            if (t.length === size) { result.push(t); return; }
+            if (i + 1 <= array.length) { p(t.concat(array[i]), i + 1); p(t, i + 1); }
+        }
+        p([], 0);
+        return result;
+    }
+
+    function getStatProb(stat, minVal) {
+        let vals = STAT_DATA[stat];
+        let probs = PROB_DATA["8"];
+        if (stat === "크리티컬" || stat === "크리티컬 피해") probs = PROB_DATA["8_crit"];
+        if (stat === "고정 공격력") probs = PROB_DATA["4_atk"];
+        if (stat === "고정 방어력") probs = PROB_DATA["4_def"];
+        
+        let cumulative = 0;
+        for (let i = 0; i < vals.length; i++) {
+            if (vals[i] >= minVal) cumulative += probs[i];
+        }
+        return cumulative / 100.0;
+    }
+
+    function calculateFinalProb() {
+        let currentStats = [];
+        let lockedStats = [];
+        for (let i = 0; i < 5; i++) {
+            let s = document.getElementById(`stat_${i}`).value;
+            if (!s) return alert(`${i+1}번째 에코 옵션을 선택해 주세요.`);
+            currentStats.push(s);
+            if (document.getElementById(`lock_${i}`).checked) lockedStats.push(s);
+        }
+        if (new Set(currentStats).size !== 5) return alert("현재 에코 옵션에 중복이 있습니다. 정확히 입력해 주세요.");
+        if (lockedStats.length === 0) return alert("최소 1개 이상의 옵션을 잠가야 주파수 조정기를 사용할 수 있습니다.");
+        if (lockedStats.length === 5) return alert("5개를 다 잠그면 조정기를 돌릴 수 없습니다!");
+
+        let targetReqs = [];
+        STATS.forEach(stat => {
+            let cb = document.getElementById(`t_cb_${stat}`);
+            if (cb && cb.checked) {
+                targetReqs.push({
+                    name: stat,
+                    minVal: parseFloat(document.getElementById(`t_val_${stat}`).value)
+                });
+            }
+        });
+        
+        const minTargets = parseInt(document.getElementById('target_r').value);
+        const lockedCount = lockedStats.length;
+        const unlockedSlotsCount = 5 - lockedCount;
+
+        if (targetReqs.length === 0) return alert("2단계에서 재구성으로 띄우고 싶은 목표 옵션을 체크해 주세요.");
+        if (minTargets > targetReqs.length) return alert(`체크한 목표 옵션이 ${targetReqs.length}개인데, 최소 ${minTargets}개가 뜨길 바라는 것은 불가능합니다.`);
+        if (minTargets > unlockedSlotsCount) return alert(`남은 빈칸이 ${unlockedSlotsCount}칸인데, ${minTargets}개의 목표를 띄울 수 없습니다.`);
+
+        let tunerCostPerAttempt = 1;
+        if (lockedCount === 3) tunerCostPerAttempt = 2;
+        else if (lockedCount === 4) tunerCostPerAttempt = 3;
+
+        let pool = STATS.filter(s => !lockedStats.includes(s)); 
+        let combos = getCombinations(pool, unlockedSlotsCount);
+        let totalSuccessProb = 0;
+
+        for (let C of combos) {
+            let presentTargets = targetReqs.filter(t => C.includes(t.name));
+            if (presentTargets.length < minTargets) continue;
+
+            let n = presentTargets.length;
+            let comboProb = 0;
+            for (let mask = 0; mask < (1 << n); mask++) {
+                let passedCount = 0;
+                let maskProb = 1.0;
+                for (let i = 0; i < n; i++) {
+                    let t = presentTargets[i];
+                    let passProb = getStatProb(t.name, t.minVal);
+                    if ((mask & (1 << i)) !== 0) {
+                        passedCount++;
+                        maskProb *= passProb;
+                    } else {
+                        maskProb *= (1 - passProb);
+                    }
+                }
+                if (passedCount >= minTargets) comboProb += maskProb;
+            }
+            totalSuccessProb += comboProb;
+        }
+
+        let finalProbability = totalSuccessProb / combos.length;
+
+        let resArea = document.getElementById('resultArea');
+        let targetNames = targetReqs.map(t => t.name).join(', ');
+        
+        document.getElementById('res_details').innerHTML = 
+            `[잠금] ${lockedStats.join(', ')} (${lockedCount}개)<br>
+             [재구성] 남은 <b>${unlockedSlotsCount}칸</b> 중 <b>[${targetNames}]</b> 에서 <b>최소 ${minTargets}개</b> 이상 유효 수치 띄우기`;
+            
+        document.getElementById('final_prob').innerText = (finalProbability * 100).toFixed(4) + "%";
+        
+        if (finalProbability > 0) {
+            let exp = Math.round(1 / finalProbability);
+            let totalNeededTuners = exp * tunerCostPerAttempt;
+            document.getElementById('expected_tries').innerHTML = `평균 기댓값: 약 <b>${exp.toLocaleString()}</b> 번 시도<br>(필요 주파수 조정기 약 ${totalNeededTuners.toLocaleString()}개)`;
+        } else {
+            document.getElementById('expected_tries').innerHTML = "수학적으로 불가능한 조건입니다.";
+        }
+        resArea.style.display = 'block';
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+</script>
+
+</body>
+</html>

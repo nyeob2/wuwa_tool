@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🛑 에코 손절 족보</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #1a1a1d; color: #e0e0e0; max-width: 750px; margin: 0 auto; padding: 20px; line-height: 1.6; overflow-x: hidden; }
+        h1 { text-align: center; color: #ffeb3b; font-size: 26px; }
+        .container { background: #252529; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%; }
+        .form-group { margin-bottom: 25px; border-bottom: 1px solid #444; padding-bottom: 20px; }
+        label { display: block; margin-bottom: 10px; font-weight: bold; color: #aaa; font-size: 16px; }
+        
+        /* 옵션 선택 UI (프리미엄 라디오 버튼) */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; background: #333; padding: 8px 12px; border-radius: 6px; flex-wrap: wrap; gap: 10px; }
+        .stat-name { font-size: 15px; font-weight: bold; flex: 1; min-width: 120px; }
+        .btn-group { display: flex; border-radius: 6px; overflow: hidden; border: 1px solid #444; flex: 0 0 150px; }
+        .btn-group label { flex: 1; text-align: center; padding: 6px 0; cursor: pointer; background: #222; margin: 0; font-size: 13px; border-right: 1px solid #444; color: #888; font-weight: normal; }
+        .btn-group label:last-child { border-right: none; }
+        .btn-group input[type="radio"] { display: none; }
+        /* 라디오 버튼 선택 시 색상 변화 */
+        .btn-group input[type="radio"][value="E"]:checked + span { display: block; background: #f44336; color: #fff; font-weight: bold; margin: -6px 0; padding: 6px 0; }
+        .btn-group input[type="radio"][value="O"]:checked + span { display: block; background: #4caf50; color: #fff; font-weight: bold; margin: -6px 0; padding: 6px 0; }
+        .btn-group input[type="radio"][value="X"]:checked + span { display: block; background: #555; color: #fff; margin: -6px 0; padding: 6px 0; }
+
+        input[type="number"], select, button { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #444; background-color: #333; color: #fff; font-size: 16px; box-sizing: border-box; }
+        input:focus, select:focus { border-color: #ffeb3b; outline: none; }
+        button { background: linear-gradient(45deg, #ff9800, #ff5722); border: none; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; color: white; font-size: 18px; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,87,34,0.4); }
+        
+        .result-section { margin-top: 30px; display: none; }
+        .ev-box { background: #2a2a2e; padding: 20px; border-radius: 8px; text-align: center; border-left: 5px solid #ffeb3b; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        .ev-title { font-size: 16px; color: #ccc; margin-bottom: 5px; }
+        .ev-value { font-size: 30px; font-weight: bold; color: #ffeb3b; }
+
+        .step-container { background: #2a2a2e; margin-top: 15px; padding: 15px; border-radius: 8px; border-left: 4px solid #555; }
+        .step-title { font-size: 17px; font-weight: bold; color: #fff; margin-bottom: 12px; border-bottom: 1px dashed #555; padding-bottom: 8px; }
+        .case-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-bottom: 8px; background: #333; border-radius: 6px; border-left: 4px solid transparent; }
+        .case-status { font-weight: bold; font-size: 15px; }
+        .case-tag { font-size: 12px; padding: 2px 6px; border-radius: 4px; margin-right: 5px; }
+        .tag-E { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+        .tag-O { background: rgba(76, 175, 80, 0.2); color: #4caf50; }
+        .tag-X { background: rgba(136, 136, 136, 0.2); color: #aaa; }
+        .case-prob { font-size: 15px; text-align: right; }
+        .advice { font-size: 13px; padding: 5px 10px; border-radius: 4px; font-weight: bold; margin-left: 10px; display: inline-block; min-width: 85px; text-align: center; }
+        
+        .bg-good { border-left-color: #4caf50; }
+        .advice-good { background: rgba(76, 175, 80, 0.2); color: #4caf50; }
+        .bg-danger { border-left-color: #f44336; opacity: 0.8; }
+        .advice-danger { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+        .bg-dead { border-left-color: #555; opacity: 0.4; }
+        .advice-dead { background: rgba(85, 85, 85, 0.3); color: #aaa; text-decoration: line-through; }
+        
+        .help-text { font-size: 13px; color: #888; margin-top: 6px; }
+        .baseline-text { text-align: center; font-size: 15px; color: #aaa; margin-bottom: 15px; }
+
+        /* 모바일 대응 미디어 쿼리 */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            .stat-grid { grid-template-columns: 1fr; }
+            .btn-group { flex: 1 1 100%; width: 100%; }
+            .case-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .case-prob { text-align: left; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🛑 에코 손절 족보</h1>
+    
+    <div class="form-group">
+        <label>1. 옵션 등급을 지정하세요</label>
+        <p class="help-text" style="margin-top:-5px; margin-bottom:15px;">* 필수: 무조건 다 떠야 함 / * 선택: 남은 빈칸 채우기 용</p>
+        <div class="stat-grid" id="statGrid">
+            <!-- JS 렌더링 -->
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>2. 5칸 중 필수+선택 합쳐서 최소 몇 개가 떠야 종결입니까?</label>
+        <input type="number" id="valTarget" value="4" min="1" max="5">
+        <p class="help-text">예: 크확/크피(필수 2) + 공효/공퍼(선택 2) 중 <b>총 4유효</b> 원하면 '4' 입력</p>
+    </div>
+
+    <div class="form-group" style="border-bottom: none;">
+        <label>3. 강화 시작 방식을 선택하세요</label>
+        <select id="startStrategy">
+            <option value="1">+5강 (1칸 열고 족보 확인 시작)</option>
+            <option value="2">+10강 (2칸 한 번에 열고 족보 확인 시작)</option>
+        </select>
+    </div>
+
+    <button onclick="calculateAll()">손절 족보 만들기 🚀</button>
+
+    <div id="resultSection" class="result-section">
+        <div id="baselineInfo" class="baseline-text"></div>
+        <div class="ev-box">
+            <div class="ev-title">선택하신 전략의 목표 달성 평균 기댓값</div>
+            <div class="ev-value">튜너 약 <span id="finalEV">0</span> 개 소모</div>
+            <div style="font-size:13px; color:#aaa; margin-top:5px;">(기본 확률 밑으로 떨어질 때 칼같이 손절한 경우)</div>
+        </div>
+        <h2 style="color:#fff; font-size:20px; border-bottom:2px solid #444; padding-bottom:10px;">📋 단계별 손절 족보</h2>
+        <div id="cheatSheetArea"></div>
+    </div>
+</div>
+
+<script>
+    const STATS = [
+        "크리티컬", "크리티컬 피해", "공격력 보너스(%)", "공명 효율", 
+        "공명 스킬 피해", "일반 공격 피해", "강공격 피해", "공명 해방 피해",
+        "고정 공격력", "고정 HP", "고정 방어력", "HP 보너스(%)", "방어력 보너스(%)"
+    ];
+
+    window.onload = () => {
+        const grid = document.getElementById('statGrid');
+        STATS.forEach((stat, idx) => {
+            let defE = (stat === "크리티컬" || stat === "크리티컬 피해") ? "checked" : "";
+            let defO = (stat === "공격력 보너스(%)" || stat === "공명 효율" || stat === "강공격 피해") ? "checked" : "";
+            let defX = (!defE && !defO) ? "checked" : "";
+            
+            grid.innerHTML += `
+                <div class="stat-row">
+                    <div class="stat-name">${stat}</div>
+                    <div class="btn-group">
+                        <label><input type="radio" name="stat_${idx}" value="E" ${defE}><span>필수</span></label>
+                        <label><input type="radio" name="stat_${idx}" value="O" ${defO}><span>선택</span></label>
+                        <label><input type="radio" name="stat_${idx}" value="X" ${defX}><span>안씀</span></label>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function nCr(n, r) {
+        if (r < 0 || r > n) return 0;
+        if (r === 0 || r === n) return 1;
+        let res = 1;
+        for (let i = 1; i <= r; i++) res = res * (n - i + 1) / i;
+        return Math.round(res);
+    }
+
+    function getProb(e, o, r, k, ve, vo) {
+        let remSlots = 5 - k;
+        let remE = e - ve; 
+        let reqO = Math.max(0, r - e - vo); 
+
+        if (remE < 0) remE = 0;
+        if (remSlots < remE + reqO) return 0.0; 
+
+        let remOInPool = o - vo;
+        if (remOInPool < reqO) return 0.0; 
+
+        let remTrashInPool = 13 - k - remE - remOInPool;
+        let slotsForOT = remSlots - remE; 
+
+        let totalWays = nCr(13 - k, remSlots);
+        let successWays = 0;
+
+        for (let i = reqO; i <= Math.min(slotsForOT, remOInPool); i++) {
+            successWays += nCr(remOInPool, i) * nCr(remTrashInPool, slotsForOT - i);
+        }
+
+        return successWays / totalWays;
+    }
+
+    function calculateEV(e, o, r, baseProb, startSlots) {
+        let expectedCost = 0;
+        let totalSuccessProb = 0;
+
+        function traverse(k, ve, vo, currentProb, accumulatedCost) {
+            if (k === 5) {
+                if (ve >= e && (ve + vo) >= r) totalSuccessProb += currentProb;
+                return;
+            }
+
+            let stateProb = getProb(e, o, r, k, ve, vo);
+            if (stateProb < baseProb) return; 
+
+            let costNext = 10;
+            expectedCost += currentProb * costNext;
+
+            let pHitE = (e - ve) / (13 - k);
+            let pHitO = (o - vo) / (13 - k);
+            let pMiss = (13 - k - (e - ve) - (o - vo)) / (13 - k);
+
+            if (pHitE > 0) traverse(k + 1, ve + 1, vo, currentProb * pHitE, accumulatedCost + costNext);
+            if (pHitO > 0) traverse(k + 1, ve, vo + 1, currentProb * pHitO, accumulatedCost + costNext);
+            if (pMiss > 0) traverse(k + 1, ve, vo, currentProb * pMiss, accumulatedCost + costNext);
+        }
+
+        if (startSlots === 1) { 
+            expectedCost += 10;
+            traverse(1, 1, 0, e/13, 10);
+            traverse(1, 0, 1, o/13, 10);
+            traverse(1, 0, 0, (13-e-o)/13, 10);
+        } else {
+            expectedCost += 20;
+            let t = 13 - e - o;
+            let total2 = nCr(13, 2);
+            if (nCr(e,2)>0) traverse(2, 2, 0, nCr(e,2)/total2, 20);
+            if (e*o>0) traverse(2, 1, 1, (e*o)/total2, 20);
+            if (e*t>0) traverse(2, 1, 0, (e*t)/total2, 20);
+            if (nCr(o,2)>0) traverse(2, 0, 2, nCr(o,2)/total2, 20);
+            if (o*t>0) traverse(2, 0, 1, (o*t)/total2, 20);
+            if (nCr(t,2)>0) traverse(2, 0, 0, nCr(t,2)/total2, 20);
+        }
+
+        return totalSuccessProb > 0 ? expectedCost / totalSuccessProb : Infinity;
+    }
+
+    function calculateAll() {
+        let eCount = 0; let oCount = 0;
+        for(let i=0; i<13; i++) {
+            let val = document.querySelector(`input[name="stat_${i}"]:checked`).value;
+            if (val === 'E') eCount++;
+            if (val === 'O') oCount++;
+        }
+        const rCount = parseInt(document.getElementById('valTarget').value);
+        const startStrategy = parseInt(document.getElementById('startStrategy').value);
+
+        if (eCount === 0 && oCount === 0) return alert("❌ 최소 1개 이상의 필수 또는 선택 옵션을 지정하세요!");
+        if (rCount < eCount) return alert(`❌ 필수 옵션이 ${eCount}개이므로, 목표 개수는 최소 ${eCount}개 이상이어야 합니다!`);
+        if (rCount > eCount + oCount) return alert("❌ 필수+선택 옵션을 합친 수보다 목표 개수가 큽니다!");
+
+        const baseProb = getProb(eCount, oCount, rCount, 0, 0, 0); 
+        const ev = calculateEV(eCount, oCount, rCount, baseProb, startStrategy);
+
+        document.getElementById('baselineInfo').innerHTML = 
+            `💡 기본 손절 기준점: 성공 확률이 <b>${(baseProb * 100).toFixed(2)}%</b> 미만이면 손절합니다.`;
+        document.getElementById('finalEV').innerText = ev === Infinity ? "계산불가" : Math.round(ev).toLocaleString();
+
+        let cheatHtml = "";
+        for (let k = startStrategy; k <= 4; k++) {
+            let stepHasCases = false;
+            let stepHtml = `<div class="step-container"><div class="step-title">▶ [ ${k}번째 부옵션 확인 (${k*5}강) ]</div>`;
+            
+            for (let ve = Math.min(k, eCount); ve >= 0; ve--) {
+                for (let vo = Math.min(k - ve, oCount); vo >= 0; vo--) {
+                    let vt = k - ve - vo; 
+                    if (vt > 13 - eCount - oCount) continue; 
+
+                    let p = getProb(eCount, oCount, rCount, k, ve, vo);
+                    let pPercent = (p * 100).toFixed(2);
+                    
+                    let bgClass = "", adviceClass = "", adviceTxt = "";
+                    if (p === 0) {
+                        bgClass = "bg-dead"; adviceClass = "advice-dead"; adviceTxt = "불가능";
+                    } else if (p < baseProb) { 
+                        bgClass = "bg-danger"; adviceClass = "advice-danger"; adviceTxt = "손절 🛑";
+                    } else {
+                        bgClass = "bg-good"; adviceClass = "advice-good"; adviceTxt = "GO! 🚀";
+                    }
+
+                    let statusText = "";
+                    if (ve>0) statusText += `<span class="case-tag tag-E">필수 ${ve}</span>`;
+                    if (vo>0) statusText += `<span class="case-tag tag-O">선택 ${vo}</span>`;
+                    if (vt>0) statusText += `<span class="case-tag tag-X">꽝 ${vt}</span>`;
+                    if (ve===0 && vo===0) statusText = `<span class="case-tag tag-X">전부 꽝 😭</span>`;
+
+                    stepHtml += `
+                        <div class="case-row ${bgClass}">
+                            <div class="case-status">${statusText}</div>
+                            <div class="case-prob">
+                                ${pPercent}%
+                                <span class="advice ${adviceClass}">${adviceTxt}</span>
+                            </div>
+                        </div>`;
+                    stepHasCases = true;
+                }
+            }
+            stepHtml += `</div>`;
+            if(stepHasCases) cheatHtml += stepHtml;
+        }
+        
+        document.getElementById('cheatSheetArea').innerHTML = cheatHtml;
+        document.getElementById('resultSection').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>

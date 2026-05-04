@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🌱 에코 확률 계산기</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #1a1a1d; color: #e0e0e0; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; overflow-x: hidden; }
+        h1 { text-align: center; color: #4caf50; font-size: 26px; }
+        .container { background: #252529; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%; }
+        .step-box { background: #2a2a2e; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #4caf50; }
+        .step-title { font-size: 18px; font-weight: bold; color: #fff; margin-bottom: 15px; border-bottom: 1px dashed #555; padding-bottom: 10px; }
+        
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #aaa; }
+        input[type="number"], select, button { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #444; background-color: #333; color: #fff; font-size: 15px; box-sizing: border-box; }
+        input:focus, select:focus { border-color: #4caf50; outline: none; }
+        button { background: linear-gradient(45deg, #4caf50, #2e7d32); border: none; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; color: white; font-size: 18px; padding: 15px; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(76,175,80,0.4); }
+
+        /* 필수/선택 그리드 */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; background: #333; padding: 8px 12px; border-radius: 6px; flex-wrap: wrap; gap: 10px; }
+        .stat-name { font-size: 14px; font-weight: bold; flex: 1; min-width: 120px; }
+        .btn-group { display: flex; border-radius: 6px; overflow: hidden; border: 1px solid #444; flex: 0 0 160px; }
+        .btn-group label { flex: 1; text-align: center; padding: 6px 0; cursor: pointer; background: #222; margin: 0; font-size: 13px; border-right: 1px solid #444; color: #888; }
+        .btn-group label:last-child { border-right: none; }
+        .btn-group input[type="radio"] { display: none; }
+        .btn-group input[type="radio"][value="E"]:checked + span { display: block; background: #f44336; color: #fff; font-weight: bold; margin: -6px 0; padding: 6px 0; }
+        .btn-group input[type="radio"][value="O"]:checked + span { display: block; background: #4caf50; color: #fff; font-weight: bold; margin: -6px 0; padding: 6px 0; }
+        .btn-group input[type="radio"][value="X"]:checked + span { display: block; background: #555; color: #fff; margin: -6px 0; padding: 6px 0; }
+
+        /* 수치 입력기 */
+        .val-input-group { background: #333; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #f44336; }
+        .val-input-group.optional { border-left-color: #4caf50; }
+        
+        .result-box { display: none; margin-top: 20px; padding: 25px; background: #2a2a2e; border-radius: 12px; border: 2px solid #4caf50; text-align: center; }
+        .res-title { font-size: 20px; font-weight: bold; color: #4caf50; margin-bottom: 15px; }
+        .res-prob { font-size: 34px; font-weight: bold; color: #fff; margin-bottom: 10px; text-shadow: 0 0 10px rgba(76,175,80,0.5); }
+        .res-expected { font-size: 16px; color: #aaa; }
+        .help-text { font-size: 13px; color: #888; margin-top: 5px; margin-bottom: 10px; }
+
+        /* 모바일 대응 미디어 쿼리 */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            .step-box { padding: 15px; }
+            .stat-grid { grid-template-columns: 1fr; }
+            .btn-group { flex: 1 1 100%; width: 100%; }
+            .res-prob { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🌱 에코 확률 계산기</h1>
+    <p style="text-align:center; color:#aaa; font-size:14px; margin-top:-10px;">0강 에코를 25강까지 뚫었을 때 종결템이 될 확률을 계산합니다.</p>
+
+    <div class="step-box">
+        <div class="step-title">1단계: 목표 옵션 지정 (필수 / 선택)</div>
+        <p class="help-text">필수(무조건 떠야 함) / 선택(남은 칸 채우기 용)을 분류해 주세요.</p>
+        <div class="stat-grid" id="stat_grid"></div>
+        
+        <label style="margin-top: 20px;">▶ 최종 목표: (필수 + 선택) 합쳐서 총 몇 유효?</label>
+        <input type="number" id="target_r" value="4" min="1" max="5">
+    </div>
+
+    <div class="step-box">
+        <div class="step-title">2단계: 최소 수치(커트라인) 설정</div>
+        <button onclick="generateValueInputs()" style="background: #444; font-size: 15px; padding: 10px;">수치 입력창 열기 (위에서 옵션 지정 후 클릭)</button>
+        <div id="value_inputs_area" style="margin-top: 15px;"></div>
+    </div>
+
+    <button onclick="calculateFinalProb()">에코 확률 계산하기 🚀</button>
+
+    <div id="resultArea" class="result-box">
+        <div class="res-title">📊 [계산 결과]</div>
+        <div class="res-prob" id="final_prob">0.0000%</div>
+        <div class="res-expected" id="expected_tries"></div>
+    </div>
+</div>
+
+<script>
+    const STAT_DATA = {
+        "크리티컬": [6.3, 6.9, 7.5, 8.1, 8.7, 9.3, 9.9, 10.5],
+        "크리티컬 피해": [12.6, 13.8, 15.0, 16.2, 17.4, 18.6, 19.8, 21.0],
+        "공격력 보너스(%)": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "공명 효율": [6.8, 7.6, 8.4, 9.2, 10.0, 10.8, 11.6, 12.4],
+        "공명 스킬 피해": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "일반 공격 피해": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "강공격 피해": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "공명 해방 피해": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "HP 보너스(%)": [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+        "방어력 보너스(%)": [8.1, 9.0, 10.0, 10.9, 11.8, 12.8, 13.8, 14.7],
+        "고정 공격력": [30, 40, 50, 60],
+        "고정 방어력": [40, 50, 60, 70],
+        "고정 HP": [320, 360, 390, 430, 470, 510, 540, 580]
+    };
+    
+    const PROB_DATA = {
+        "8": [6.7961, 7.7670, 20.3883, 24.2718, 17.4757, 14.5631, 5.8252, 2.9126], 
+        "8_crit": [23.3333, 23.3333, 23.3333, 8.0000, 8.0000, 8.0000, 3.0000, 3.0000],
+        "4_atk": [6.7961, 52.4272, 37.8641, 2.9126],
+        "4_def": [14.5631, 44.6602, 32.0388, 8.7379]
+    };
+    const STATS = Object.keys(STAT_DATA);
+
+    window.onload = () => {
+        renderStatGrid();
+    };
+
+    function renderStatGrid() {
+        const grid = document.getElementById('stat_grid');
+        grid.innerHTML = "";
+        STATS.forEach(stat => {
+            let defE = (stat === "크리티컬" || stat === "크리티컬 피해") ? "checked" : "";
+            let defO = (stat === "공격력 보너스(%)" || stat === "공명 효율") ? "checked" : "";
+            let defX = (!defE && !defO) ? "checked" : "";
+            
+            grid.innerHTML += `
+                <div class="stat-row">
+                    <div class="stat-name">${stat}</div>
+                    <div class="btn-group">
+                        <label><input type="radio" name="req_${stat}" value="E" ${defE}><span>필수</span></label>
+                        <label><input type="radio" name="req_${stat}" value="O" ${defO}><span>선택</span></label>
+                        <label><input type="radio" name="req_${stat}" value="X" ${defX}><span>안씀</span></label>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function getSelectedReqs() {
+        let E_list = []; let O_list = [];
+        STATS.forEach(stat => {
+            let val = document.querySelector(`input[name="req_${stat}"]:checked`);
+            if (val && val.value === 'E') E_list.push(stat);
+            if (val && val.value === 'O') O_list.push(stat);
+        });
+        return { E: E_list, O: O_list };
+    }
+
+    function generateValueInputs() {
+        const reqs = getSelectedReqs();
+        const area = document.getElementById('value_inputs_area');
+        area.innerHTML = "";
+        
+        let allReqs = [...reqs.E, ...reqs.O];
+        if (allReqs.length === 0) {
+            area.innerHTML = "<p style='color:#f44336;'>최소 1개 이상의 필수 또는 선택 옵션을 지정해 주세요!</p>";
+            return;
+        }
+
+        allReqs.forEach(stat => {
+            const isE = reqs.E.includes(stat);
+            const vals = STAT_DATA[stat];
+            let options = vals.map((v, i) => `<option value="${v}">${v} ${i===0?'(최하 - 상관없음)':''}</option>`).join('');
+            
+            area.innerHTML += `
+                <div class="val-input-group ${isE ? '' : 'optional'}">
+                    <label>[${isE ? '필수' : '선택'}] ${stat} 최소 수치:</label>
+                    <select id="val_${stat}">${options}</select>
+                </div>
+            `;
+        });
+    }
+
+    function getCombinations(array, size) {
+        let result = [];
+        function p(t, i) {
+            if (t.length === size) { result.push(t); return; }
+            if (i + 1 <= array.length) { p(t.concat(array[i]), i + 1); p(t, i + 1); }
+        }
+        p([], 0);
+        return result;
+    }
+
+    function getSubsets(array) {
+        return array.reduce((subsets, value) => subsets.concat(subsets.map(set => [value,...set])), [[]]);
+    }
+
+    function getStatProb(stat, minVal) {
+        let vals = STAT_DATA[stat];
+        let probs = PROB_DATA["8"];
+        if (stat === "크리티컬" || stat === "크리티컬 피해") probs = PROB_DATA["8_crit"];
+        if (stat === "고정 공격력") probs = PROB_DATA["4_atk"];
+        if (stat === "고정 방어력") probs = PROB_DATA["4_def"];
+        
+        let cumulative = 0;
+        for (let i = 0; i < vals.length; i++) {
+            if (vals[i] >= minVal) cumulative += probs[i];
+        }
+        return cumulative / 100.0;
+    }
+
+    function calculateFinalProb() {
+        const target_r = parseInt(document.getElementById('target_r').value);
+        let reqs = getSelectedReqs();
+        let slots = 5;
+        
+        if (reqs.E.length > slots) return alert(`5칸 안에 뽑아야 할 필수 옵션(${reqs.E.length}개)이 더 많아 불가능합니다!`);
+        if (target_r > reqs.E.length + reqs.O.length) return alert("목표 유효 개수가 필수+선택 옵션 수보다 큽니다!");
+        if (target_r < reqs.E.length) return alert(`필수 옵션이 ${reqs.E.length}개이므로, 목표 유효 개수는 최소 ${reqs.E.length}개 이상이어야 합니다.`);
+        
+        let valProbs = {};
+        let missingInputs = false;
+        [...reqs.E, ...reqs.O].forEach(stat => {
+            let el = document.getElementById(`val_${stat}`);
+            if (!el) { missingInputs = true; return; }
+            valProbs[stat] = getStatProb(stat, parseFloat(el.value));
+        });
+        
+        if (missingInputs) return alert("수치 입력창을 열어 조건을 먼저 세팅해 주세요!");
+
+        let combos = getCombinations(STATS, slots);
+        let totalSuccessProb = 0;
+
+        for (let C of combos) {
+            let hasAllE = true;
+            for (let e of reqs.E) { if (!C.includes(e)) { hasAllE = false; break; } }
+            if (!hasAllE) continue;
+
+            let p_success = 1.0;
+            
+            for (let e of reqs.E) p_success *= valProbs[e];
+
+            let C_O = C.filter(s => reqs.O.includes(s));
+            let k = target_r - reqs.E.length; 
+
+            let p_opt_pass = 0;
+            if (k <= 0) {
+                p_opt_pass = 1.0;
+            } else if (k > C_O.length) {
+                p_opt_pass = 0.0;
+            } else {
+                let subsets = getSubsets(C_O);
+                for (let sub of subsets) {
+                    if (sub.length >= k) {
+                        let p_sub = 1.0;
+                        for (let s of C_O) {
+                            if (sub.includes(s)) p_sub *= valProbs[s];
+                            else p_sub *= (1 - valProbs[s]);
+                        }
+                        p_opt_pass += p_sub;
+                    }
+                }
+            }
+            
+            p_success *= p_opt_pass;
+            totalSuccessProb += p_success;
+        }
+
+        let finalProbability = totalSuccessProb / combos.length;
+
+        let resArea = document.getElementById('resultArea');
+        document.getElementById('final_prob').innerText = (finalProbability * 100).toFixed(6) + "%";
+        
+        if (finalProbability > 0) {
+            let exp = Math.round(1 / finalProbability);
+            let tunerCost = exp * 50;
+            document.getElementById('expected_tries').innerHTML = `평균 기댓값: 0강 에코 약 <b>${exp.toLocaleString()}</b> 번 파밍<br>(특급 튜너 약 ${tunerCost.toLocaleString()}개 소모 예상)`;
+        } else {
+            document.getElementById('expected_tries').innerHTML = "수학적으로 불가능한 확률입니다.";
+        }
+        resArea.style.display = 'block';
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+</script>
+
+</body>
+</html>
