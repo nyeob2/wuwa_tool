@@ -1,10 +1,10 @@
 {
-  "name": "명조 도구함",
-  "short_name": "도구",
+  "name": "명조 도구 모음",
+  "short_name": "명조 도구 모음",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#1a1a1d",
-  "theme_color": "#ffeb3b",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "icon.png",
